@@ -1,7 +1,14 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Doto, Geist, Geist_Mono, Space_Grotesk } from 'next/font/google'
 import './globals.css'
-
+const space = Space_Grotesk({
+  variable: '--font-space',
+  subsets: ['latin']
+})
+const doto = Doto({
+  variable: '--font-doto',
+  subsets: ['latin']
+})
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin']
@@ -31,7 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body
+        className={`${space.variable} ${doto.variable} ${geistSans.variable} ${geistMono.variable} antialiased dark bg-dark font-sans`}>
+        <div className='max-w-5xl mx-auto'>{children}</div>
+      </body>
     </html>
   )
 }
