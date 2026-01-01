@@ -1,3 +1,3 @@
-import { Content } from './content'
-const Page = async () => <Content />
+import { MoonpayCheckout } from './moonpay'
+const Page = async () => <MoonpayCheckout />
 export default Page

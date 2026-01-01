@@ -101,6 +101,8 @@ export interface Quote {
   toCurrency: string
   toBlockchain: string
   rate: string
+  toAmountUsdc?: string
+  rateUsdc?: string
 }
 
 interface ApiResponse<T> {
@@ -236,24 +238,55 @@ export const useConverter = () => {
         setError(null)
 
         try {
-          const response = await fetch('/api/swapped', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              category: 'quotes',
-              method: 'get',
-              params
-            })
-          })
+          // Fetch main quote and USDC quote in parallel
+          const [mainResponse, usdcResponse] = await Promise.all([
+            fetch('/api/swapped', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                category: 'quotes',
+                method: 'get',
+                params
+              })
+            }),
+            // Fetch USDC quote (skip if already USDC)
+            params.toCurrency.toUpperCase() !== 'USDC'
+              ? (() => {
+                  // Try to find a blockchain that supports USDC, default to Ethereum
+                  const usdcBlockchain =
+                    blockchains.find((b) =>
+                      b.currencies?.some(
+                        (c) =>
+                          (typeof c === 'string' && c.toUpperCase() === 'USDC') ||
+                          (typeof c === 'object' && c.symbol?.toUpperCase() === 'USDC')
+                      )
+                    )?.name || 'Ethereum'
 
-          const result = await response.json()
+                  return fetch('/api/swapped', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      category: 'quotes',
+                      method: 'get',
+                      params: {
+                        ...params,
+                        toCurrency: 'USDC',
+                        toBlockchain: usdcBlockchain
+                      }
+                    })
+                  })
+                })()
+              : Promise.resolve(null)
+          ])
 
-          if (!response.ok) {
-            throw new Error(result.message ?? 'Failed to get quote')
+          const mainResult = await mainResponse.json()
+
+          if (!mainResponse.ok) {
+            throw new Error(mainResult.message ?? 'Failed to get quote')
           }
 
-          if (result.success && result.data) {
-            const data = result.data as {
+          if (mainResult.success && mainResult.data) {
+            const data = mainResult.data as {
               fromAmount?: { amount?: string }
               toAmount?: { afterFees?: string; beforeFees?: string }
             }
@@ -265,16 +298,46 @@ export const useConverter = () => {
             // Calculate rate (how much crypto per 1 fiat)
             const rate = fromAmt > 0 ? toAmt / fromAmt : 0
 
+            // Process USDC quote if available
+            let toAmountUsdc: string | undefined
+            let rateUsdc: string | undefined
+
+            if (usdcResponse) {
+              try {
+                const usdcResult = await usdcResponse.json()
+                if (usdcResult.success && usdcResult.data) {
+                  const usdcData = usdcResult.data as {
+                    fromAmount?: { amount?: string }
+                    toAmount?: { afterFees?: string; beforeFees?: string }
+                  }
+                  const usdcFromAmt = parseFloat(usdcData.fromAmount?.amount ?? params.fromAmount)
+                  const usdcToAmt = parseFloat(usdcData.toAmount?.afterFees ?? usdcData.toAmount?.beforeFees ?? '0')
+                  const usdcRate = usdcFromAmt > 0 ? usdcToAmt / usdcFromAmt : 0
+                  toAmountUsdc = usdcToAmt.toString()
+                  rateUsdc = usdcRate.toString()
+                }
+              } catch (usdcErr) {
+                // Silently fail USDC quote - it's optional
+                console.warn('Failed to fetch USDC quote:', usdcErr)
+              }
+            } else if (params.toCurrency.toUpperCase() === 'USDC') {
+              // If already USDC, use the same values
+              toAmountUsdc = toAmt.toString()
+              rateUsdc = rate.toString()
+            }
+
             setQuote({
               fromAmount: params.fromAmount,
               fromCurrency: params.fromFiatCurrency,
               toAmount: toAmt.toString(),
               toCurrency: params.toCurrency,
               toBlockchain: params.toBlockchain,
-              rate: rate.toString()
+              rate: rate.toString(),
+              toAmountUsdc,
+              rateUsdc
             })
           } else {
-            throw new Error(result.message ?? 'Failed to get quote')
+            throw new Error(mainResult.message ?? 'Failed to get quote')
           }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Failed to get quote'
@@ -285,7 +348,7 @@ export const useConverter = () => {
         }
       }, 300)
     },
-    []
+    [blockchains]
   )
 
   const clearQuote = useCallback(() => {

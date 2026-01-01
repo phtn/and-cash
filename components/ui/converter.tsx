@@ -5,7 +5,7 @@ import { useConverter } from '@/hooks/use-converter'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
-import { startTransition, useCallback, useEffect, useMemo } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
 interface ConverterProps {
@@ -27,7 +27,8 @@ export const Converter = ({ className }: ConverterProps) => {
   } = useConverter()
 
   // Form state synced to URL params via context
-  const { params, setAmount, setFromCurrency, setToCurrency, setToBlockchain, setParams } = useConverterParams()
+  const { params, setAmount, setFromCurrency, setToCurrency, setToBlockchain, setParams, setToAmountUsdc } =
+    useConverterParams()
   const { amount, fromCurrency, toCurrency, toBlockchain } = params
 
   // Fallback mapping for cryptos that have their own dedicated blockchain
@@ -58,6 +59,33 @@ export const Converter = ({ className }: ConverterProps) => {
   useEffect(() => {
     initialize()
   }, [initialize])
+
+  // Reset focus state on mount to prevent stale focus from navigation
+  const toCurrencySelectRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    // Reset focus when component mounts to prevent stale focus states from navigation
+    // This fixes the issue where focus ring persists when navigating back from /pay route
+    const resetFocus = () => {
+      // Find and blur any select triggers that might have stale focus
+      const selectTriggers = document.querySelectorAll('[data-slot="select-trigger"]')
+      selectTriggers.forEach((trigger) => {
+        if (trigger === document.activeElement) {
+          ;(trigger as HTMLElement).blur()
+        }
+      })
+      // Also blur the ref if it's focused
+      if (toCurrencySelectRef.current && document.activeElement === toCurrencySelectRef.current) {
+        toCurrencySelectRef.current.blur()
+      }
+    }
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      resetFocus()
+    })
+
+    return () => cancelAnimationFrame(rafId)
+  }, [])
 
   // Build a map of crypto symbol to supported blockchain IDs
   const cryptoBlockchainMap = useMemo(() => {
@@ -233,29 +261,43 @@ export const Converter = ({ className }: ConverterProps) => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
       if (/^\d*\.?\d*$/.test(value)) {
+        clearQuote()
         setAmount(value)
+        setToAmountUsdc('')
       }
     },
-    [setAmount]
+    [setAmount, clearQuote, setToAmountUsdc]
   )
 
   const handleFromCurrencyChange = useCallback(
     (value: string) => {
       setFromCurrency(value)
       clearQuote()
+      setToAmountUsdc('')
     },
-    [setFromCurrency, clearQuote]
+    [setFromCurrency, clearQuote, setToAmountUsdc]
   )
+
+  // Sync quote.toAmountUsdc to URL params
+  useEffect(() => {
+    const usdcAmount = quote?.toAmountUsdc
+    if (usdcAmount !== undefined) {
+      startTransition(() => {
+        setToAmountUsdc(usdcAmount)
+      })
+    }
+  }, [quote?.toAmountUsdc, setToAmountUsdc])
 
   const handleToCurrencyChange = useCallback(
     (value: string) => {
       startTransition(() => {
         setToCurrency(value)
         clearQuote()
+        setToAmountUsdc('')
         setToBlockchain(getPreferredBlockchainForCurrency(value))
       })
     },
-    [setToCurrency, setToBlockchain, clearQuote, getPreferredBlockchainForCurrency]
+    [setToCurrency, setToBlockchain, clearQuote, setToAmountUsdc, getPreferredBlockchainForCurrency]
   )
 
   const handleBlockchainChange = useCallback(
@@ -263,9 +305,10 @@ export const Converter = ({ className }: ConverterProps) => {
       startTransition(() => {
         setToBlockchain(value)
         clearQuote()
+        setToAmountUsdc('')
       })
     },
-    [setToBlockchain, clearQuote]
+    [setToBlockchain, clearQuote, setToAmountUsdc]
   )
 
   const formatCryptoAmount = (amt: string) => {
@@ -337,7 +380,7 @@ export const Converter = ({ className }: ConverterProps) => {
         {/*<div className='absolute inset-0 opacity-[0.015] pointer-events-none bg-[url("data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27noise%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23noise)%27/%3E%3C/svg%3E")]' />*/}
 
         {/* Header */}
-        <div className='relative px-6 pt-5 pb-4'>
+        <div className='relative px-6 pt-5 md:pt-10 pb-4'>
           <div className='flex items-center justify-between'>
             <h2 className='text-base font-medium text-white tracking-tight'>convert</h2>
             <div className='flex items-center gap-1.5'>
@@ -414,8 +457,9 @@ export const Converter = ({ className }: ConverterProps) => {
             }}>
             {/* Crypto gradient accent */}
             <div
+              id='crypto-gradient-accent'
+              style={{ backgroundColor: selectedCrypto?.color ?? '#888', filter: 'blur(64px)' }}
               className='absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-20'
-              style={{ backgroundColor: selectedCrypto?.color ?? '#888' }}
             />
 
             <div className='relative'>
@@ -455,7 +499,8 @@ export const Converter = ({ className }: ConverterProps) => {
 
                 <Select value={toCurrency} onValueChange={handleToCurrencyChange}>
                   <SelectTrigger
-                    className='w-auto gap-2 border-0 text-white rounded-xl px-3 h-11 transition-colors'
+                    ref={toCurrencySelectRef}
+                    className='w-auto gap-2 border-0 text-white rounded-xl px-3 h-11 transition-colors focus-visible:ring-0'
                     style={{
                       backgroundColor: `${selectedCrypto?.color ?? '#888'}30`,
                       color: 'white'

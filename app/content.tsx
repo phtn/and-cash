@@ -15,7 +15,9 @@ export const Content = () => {
       amount: params.amount,
       fromCurrency: params.fromCurrency,
       toCurrency: params.toCurrency,
-      toBlockchain: params.toBlockchain
+      toBlockchain: params.toBlockchain,
+      toAmount: params.toAmount,
+      toAmountUsdc: params.toAmountUsdc
     })
     return `/pay?${searchParams.toString()}`
   }, [params])
@@ -38,21 +40,24 @@ export const Content = () => {
             <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75'></span>
             <span className='relative inline-flex rounded-full h-2 w-2 bg-indigo-400'></span>
           </span>
-          <span className='text-foreground/80 font-brk'>50+ cryptocurrencies</span>
+          <div onClick={() => console.log(payUrl)} className='text-foreground/80 font-brk'>
+            50+ cryptocurrencies
+          </div>
         </div>
       </Navbar>
       <div className='p-4 space-y-10 h-[calc(100lvh-64px)] overflow-visible'>
         <div className='flex flex-col items-center justify-center'>
           <Converter />
         </div>
-        <div className='grid grind-cols-1 md:grid-cols-1 gap-4 px-1'>
+        <div className='grid grind-cols-1 md:grid-cols-1 gap-4 px-1 md:px-4'>
           {data.map((item) => (
             <BundleCard
               key={item.id}
               title={item.title}
               description={item.description}
               actionHref={item.actionHref}
-              // actionHref={buildUrl(item.actionHref, '/')}
+              className='bg-depths/50'
+              footerStyle='bg-linear-to-l text-white from-zinc-950 via-zinc-800 to-zinc-600'
             />
           ))}
         </div>

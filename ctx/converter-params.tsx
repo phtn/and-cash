@@ -8,6 +8,8 @@ export interface ConverterParams {
   fromCurrency: string
   toCurrency: string
   toBlockchain: string
+  toAmount: string
+  toAmountUsdc: string
 }
 
 interface ConverterParamsContextValue {
@@ -16,6 +18,8 @@ interface ConverterParamsContextValue {
   setFromCurrency: (value: string) => void
   setToCurrency: (value: string) => void
   setToBlockchain: (value: string) => void
+  setToAmount: (value: string) => void
+  setToAmountUsdc: (value: string) => void
   setParams: (updates: Partial<ConverterParams>) => void
 }
 
@@ -27,7 +31,9 @@ export function ConverterParamsProvider({ children }: { children: ReactNode }) {
       amount: parseAsString.withDefault('5000'),
       fromCurrency: parseAsString.withDefault('PHP'),
       toCurrency: parseAsString.withDefault('USDC'),
-      toBlockchain: parseAsString.withDefault('ethereum')
+      toBlockchain: parseAsString.withDefault('ethereum'),
+      toAmount: parseAsString.withDefault(''),
+      toAmountUsdc: parseAsString.withDefault('')
     },
     {
       history: 'push',
@@ -63,6 +69,20 @@ export function ConverterParamsProvider({ children }: { children: ReactNode }) {
     [setParams]
   )
 
+  const setToAmount = useCallback(
+    (value: string) => {
+      setParams((prev) => ({ ...prev, toAmount: value }))
+    },
+    [setParams]
+  )
+
+  const setToAmountUsdc = useCallback(
+    (value: string) => {
+      setParams((prev) => ({ ...prev, toAmountUsdc: value }))
+    },
+    [setParams]
+  )
+
   const value: ConverterParamsContextValue = useMemo(
     () => ({
       params,
@@ -70,9 +90,11 @@ export function ConverterParamsProvider({ children }: { children: ReactNode }) {
       setFromCurrency,
       setToCurrency,
       setToBlockchain,
+      setToAmount,
+      setToAmountUsdc,
       setParams
     }),
-    [params, setAmount, setFromCurrency, setToCurrency, setToBlockchain, setParams]
+    [params, setAmount, setFromCurrency, setToCurrency, setToBlockchain, setToAmount, setToAmountUsdc, setParams]
   )
 
   return <ConverterParamsContext.Provider value={value}>{children}</ConverterParamsContext.Provider>
