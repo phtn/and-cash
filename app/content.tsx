@@ -1,51 +1,62 @@
 'use client'
 
-import { ArcActionBar, ArcCard } from '@/components/hyper/arc-card'
-import { Brand } from '@/components/hyper/brand'
-import { Icon } from '@/lib/icons'
-import Link from 'next/link'
+import { BundleCard } from '@/components/ui/bundle-card'
+import { Converter } from '@/components/ui/converter'
+import { Navbar } from '@/components/ui/navbar'
+import { useConverterParams } from '@/ctx/converter-params'
+import { useMemo } from 'react'
 
 export const Content = () => {
+  const { params } = useConverterParams()
+
+  // Build /pay URL with current query params
+  const payUrl = useMemo(() => {
+    const searchParams = new URLSearchParams({
+      amount: params.amount,
+      fromCurrency: params.fromCurrency,
+      toCurrency: params.toCurrency,
+      toBlockchain: params.toBlockchain
+    })
+    return `/pay?${searchParams.toString()}`
+  }, [params])
+
+  // const buildUrl = useSubdomainUrlBuilder()
+  const data = [
+    {
+      id: '1',
+      title: 'Proceed to payment',
+      description: 'pay with card or e-wallet',
+      actionHref: payUrl
+      // actionHref: 'commerce' as SubdomainKey
+    }
+  ]
   return (
-    <main className='bg-serene max-w-5xl mx-auto'>
-      <div className='flex items-center justify-between w-full px-2'>
-        <Brand dark size='sm' />
-        <div className='flex items-center space-x-1 text-dark leading-none text-sm font-semibold font-space'>
-          <Icon name='solana' className='size-2.5 mb-px' />
-          <span>140</span>
-          <Icon name='ethereum' className='size-2.5 mb-px' />
-          <span>3.3K</span>
+    <main className='min-h-screen md:p-0 max-w-xl mx-auto'>
+      <Navbar>
+        <div className='inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-depths/40 px-4 h-8 text-xs mr-4'>
+          <span className='relative flex h-2 w-2'>
+            <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75'></span>
+            <span className='relative inline-flex rounded-full h-2 w-2 bg-indigo-400'></span>
+          </span>
+          <span className='text-foreground/80 font-brk'>50+ cryptocurrencies</span>
+        </div>
+      </Navbar>
+      <div className='p-4 space-y-10 h-[calc(100lvh-64px)] overflow-visible'>
+        <div className='flex flex-col items-center justify-center'>
+          <Converter />
+        </div>
+        <div className='grid grind-cols-1 md:grid-cols-1 gap-4 px-1'>
+          {data.map((item) => (
+            <BundleCard
+              key={item.id}
+              title={item.title}
+              description={item.description}
+              actionHref={item.actionHref}
+              // actionHref={buildUrl(item.actionHref, '/')}
+            />
+          ))}
         </div>
       </div>
-      <div className='flex items-start justify-center bg-zinc-50 font-sans dark:bg-serene'>
-        <ArcCard className='bg-linear-to-r from-serene to-depths w-full'>
-          <ArcActionBar>
-            <Meld />
-            <Swapped />
-          </ArcActionBar>
-        </ArcCard>
-      </div>
     </main>
-  )
-}
-
-const Swapped = () => {
-  return (
-    <Link href='/swapped-commerce' prefetch className='relative flex items-center justify-center'>
-      <div className='flex h-12 w-full items-center justify-center gap-3 bg-dark px-12 text-depths transition-colors font-polysans'>
-        <span className='relative select-none z-20 text-2xl font-light! font-polysans'>swapped</span>
-      </div>
-    </Link>
-  )
-}
-const Meld = () => {
-  return (
-    <a
-      className='flex h-12 w-full items-center justify-center gap-3 bg-dark px-12 text-serene transition-colors font-polysans'
-      href={process.env.NEXT_PUBLIC_MELD_URL}
-      target='_blank'
-      rel='noopener noreferrer'>
-      <span className='text-xl font-light! font-polysans'>meld.io</span>
-    </a>
   )
 }

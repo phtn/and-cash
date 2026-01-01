@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Doto, Geist, Geist_Mono, Space_Grotesk } from 'next/font/google'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { ProvidersWrapper } from './providers-wrapper'
 import './globals.css'
 const space = Space_Grotesk({
   variable: '--font-space',
@@ -20,7 +22,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: '&Cash',
+  title: 'Cash',
   description: 'Accept Payments',
   icons: [
     {
@@ -39,8 +41,12 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body
-        className={`${space.variable} ${doto.variable} ${geistSans.variable} ${geistMono.variable} antialiased dark bg-dark font-sans`}>
-        <div className='max-w-5xl mx-auto'>{children}</div>
+        className={`${space.variable} ${doto.variable} ${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
+        <NuqsAdapter>
+          <ProvidersWrapper>
+            <div className='w-screen overflow-x-hidden'>{children}</div>
+          </ProvidersWrapper>
+        </NuqsAdapter>
       </body>
     </html>
   )

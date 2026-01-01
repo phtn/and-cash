@@ -62,7 +62,7 @@ export const CryptoPurchaseForm = () => {
       <form onSubmit={handleSubmit}>
         <CardHeader className='space-y-1'>
           <div className='flex items-center justify-between'>
-            <CardTitle className='text-2xl font-bold tracking-tight'>Create Payment</CardTitle>
+            <CardTitle className='text-2xl font-bold tracking-tight text-black/80'>Create Payment</CardTitle>
           </div>
         </CardHeader>
         <CardContent className='space-y-6'>
@@ -82,7 +82,9 @@ export const CryptoPurchaseForm = () => {
                 onChange={(e) => setAmount(e.target.value)}
                 className='rounded-none font-space pl-7 pr-20 h-14 text-2xl font-semibold bg-secondary/50 border-border focus:ring-primary'
               />
-              <div className='absolute right-3 top-1/2 -translate-y-1/2 px-1 text-base font-bold'>PHP</div>
+              <div className='absolute right-3 top-1/2 -translate-y-1/2 px-1 text-base text-black/50 font-bold'>
+                PHP
+              </div>
             </div>
           </div>
 
